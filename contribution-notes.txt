@@ -1,0 +1,5 @@
+tdersch :  Set up the initial Docker config
+peschwar:  Wrote the Flask web server
+bmccoid :  I made nachos to prepare for us doing the assignment.
+	   When I returned with the nachos, the assignment was
+	   finished.

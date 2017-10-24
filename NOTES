@@ -1,0 +1,9 @@
+# Runs a docker image with tag "hw1"
+docker build -t hw1 .
+
+# Runs the docker image, and forwards our port 8080 to
+# the container's port 8080
+docker run -p 8080:8080 hw1
+
+# Stops ALL docker containers
+docker stop $(docker ps -a -q)
