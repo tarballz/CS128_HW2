@@ -7,4 +7,4 @@ COPY . /cmps128
 # Basically cd
 WORKDIR /cmps128
 RUN sh init.sh
-CMD python hw1.py
+CMD python hw2.py

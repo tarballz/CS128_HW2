@@ -8,6 +8,7 @@ app = Flask(__name__)
 def hello():
     return "Hello World!"
 
+# 127.0.0.1:8080/echo?msg="Hey there!"
 @app.route("/echo", methods=['GET'])
 def echoer():
 	#return "This is an echo."
