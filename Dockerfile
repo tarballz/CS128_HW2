@@ -1,4 +1,4 @@
-FROM ubuntu
+FROM alpine3.6
 
 EXPOSE 8080
 
