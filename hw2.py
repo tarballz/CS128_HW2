@@ -95,7 +95,14 @@ class KVStoreView(HTTPMethodView):
         return json(resp, status=resp_code)
 
     async def delete(self, request, key):
-        pass
+        if key in store:
+            del store[key] # We could use pop if we had to do anything w/ the value.
+            resp = {"result": SUCCESS}
+            return json(resp, status=200)
+        else:
+            msg = MSG_KEY_NOT_EXIST
+            resp = {"result": ERROR, "msg": msg}
+            return json(resp, status=404)
 
 async def KVStoreBadKey(*args, **kwargs):
     r = {"result": ERROR, "msg": "Key not valid"}
