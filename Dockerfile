@@ -12,6 +12,6 @@ WORKDIR /cmps128
 RUN apk add --update python py-pip
 
 # Install app dependencies
-RUN pip install sanic
+RUN pip install -r requirements.txt
 
 CMD python hw2.py
