@@ -28,7 +28,7 @@ async def test(request):
 @app.route("/echo", methods=['GET'])
 async def echoer(request):
     # return "This is an echo."
-    # Accessed via localhost:8080?msg=foo
+    # Accessed via localhost:8080/echo?msg=foo
     return text(request.args.get('msg'))
 
 
@@ -109,8 +109,8 @@ async def KVStoreBadKey(*args, **kwargs):
     return json(r, status=200)
 
 
-app.add_route(KVStoreView.as_view(), "/kvstore/<key:[a-zA-Z0-9_]{1,200}>")
-app.add_route(KVStoreBadKey, "/kvstore/<badkey>")
+app.add_route(KVStoreView.as_view(), "/kv-store/<key:[a-zA-Z0-9_]{1,200}>")
+app.add_route(KVStoreBadKey, "/kv-store/<badkey>")
 
 
 
