@@ -1,3 +1,4 @@
+#import pdb
 from sanic import Sanic
 from sanic.response import text, json
 from sanic.views import HTTPMethodView
@@ -12,13 +13,16 @@ MSG_KEY_NOT_EXIST = "Key does not exist"
 MSG_KEY_CREATED = "New key created"
 MSG_BODY_TO_LARGE = "Object too large. Size limit is 1MB"
 MSG_KEY_INVALID_FMT = "Key not valid"
-REQ_BODY_BYTES_LIMIT = 1000000 # 1MB
+REQ_BODY_BYTES_LIMIT = 1000000  # 1MB
+
+WORKER_NODE = False
 
 SUCCESS = "Success"
 ERROR = "Error"
 
-# The actual data: 
-store = {} 
+# The actual data:
+store = {}
+
 
 @app.route("/")
 async def test(request):
@@ -30,7 +34,6 @@ async def echoer(request):
     # return "This is an echo."
     # Accessed via localhost:8080/echo?msg=foo
     return text(request.args.get('msg'))
-
 
 
 class KVStoreView(HTTPMethodView):
@@ -62,7 +65,6 @@ class KVStoreView(HTTPMethodView):
             resp = {"result": ERROR, "value": MSG_KEY_NOT_EXIST}
             return json(resp, status=404)
 
-    
     async def put(self, request, key):
         """Used as the `PUT` HTTP verb for the kvstore and it also
         semantically `puts` the key (whether it exists or not) and then states
@@ -91,12 +93,15 @@ class KVStoreView(HTTPMethodView):
         except InvalidUsage:
             store[key] = str(request.body)
 
+        # pdb.set_trace()
+
         resp = {"replaced": replaced, "msg": msg}
         return json(resp, status=resp_code)
 
     async def delete(self, request, key):
         if key in store:
-            del store[key] # We could use pop if we had to do anything w/ the value.
+            # We could use pop if we had to do anything w/ the value.
+            del store[key]
             resp = {"result": SUCCESS}
             return json(resp, status=200)
         else:
@@ -104,14 +109,25 @@ class KVStoreView(HTTPMethodView):
             resp = {"result": ERROR, "msg": msg}
             return json(resp, status=404)
 
+
 async def KVStoreBadKey(*args, **kwargs):
     r = {"result": ERROR, "msg": "Key not valid"}
     return json(r, status=200)
 
 
-app.add_route(KVStoreView.as_view(), "/kv-store/<key:[a-zA-Z0-9_]{1,200}>")
-app.add_route(KVStoreBadKey, "/kv-store/<badkey>")
+async def KVForwarder(*args, **kwargs):
+    print("*" * 80)
+    return json({}, status=200)
 
+
+def load_master_routes(*args, **kwargs):
+    app.add_route(KVStoreView.as_view(), "/kv-store/<key:[a-zA-Z0-9_]{1,200}>")
+    app.add_route(KVStoreBadKey, "/kv-store/<badkey>")
+
+
+def load_forwarder_routes(*args, **kwargs):
+    app.add_route(KVForwarder, "/kv-store/<key:[a-zA-Z0-9_]{1,200}>")
+    app.add_route(KVStoreBadKey, "/kv-store/<badkey>")
 
 
 @app.middleware('request')
@@ -120,11 +136,17 @@ async def request_body_limit(request):
         return json({"result": ERROR, "msg": MSG_BODY_TO_LARGE}, status=200)
 
 
-
 if __name__ == '__main__':
+    app.config.KEEP_ALIVE = False
     ip = os.getenv('IP', '0.0.0.0')
     port = os.getenv('PORT', 8080)
     main_ip = os.getenv('MAINIP')
+    if (main_ip != None):
+        WORKER_NODE = True
+        # verify further?
+        load_forwarder_routes()
+    else:
+        load_master_routes()
     print(ip, port, main_ip)
+    print(app.router.routes_all)
     app.run(host=ip, port=port, debug=True)
-

@@ -8,8 +8,8 @@ COPY . /cmps128
 # Basically cd
 WORKDIR /cmps128
 
-# Update
-RUN apk add --update python py-pip
+# Add GCC
+RUN apk update && apk add gcc g++ make 
 
 # Install app dependencies
 RUN pip install -r requirements.txt
