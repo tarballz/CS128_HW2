@@ -9,6 +9,7 @@ from sanic.views import HTTPMethodView
 from sanic.exceptions import InvalidUsage
 
 
+
 app = Sanic(__name__)
 
 # Error messages
@@ -18,6 +19,7 @@ MSG_KEY_CREATED = "New key created"
 MSG_BODY_TO_LARGE = "Object too large. Size limit is 1MB"
 MSG_KEY_INVALID_FMT = "Key not valid"
 MSG_SERVER_UNAVAILABLE = "Server unavailable"
+MSG_NO_VAL_PROVIDED = "No value provided"
 REQ_BODY_BYTES_LIMIT = 1000000  # 1MB
 
 WORKER_NODE = False
@@ -95,12 +97,29 @@ class KVStoreView(HTTPMethodView):
             replaced = 'True'
             resp_code = 200
             msg = MSG_KEY_REPLACED
-        try:
-            store[key] = request.json
-        except InvalidUsage:
-            store[key] = str(request.body)
 
-        # pdb.set_trace()
+        """
+        Because the spec was very vague I will attempt to handle everywhere you
+        possibly store data for this request...I'll start with form values, then
+        to query paramaters, then try json as body, and then finally as a raw
+        unicode encoded string in the body. To be clear this wasn't because I
+        wanted it to be 'better' it's because there is not way to tell what method
+        this assignment is actually asking for. I wrongly assumed body when you
+        made the only limit on the 'val' a number of bytes... I digress.
+        """
+        try:
+            form_val = request.form.get('val', None) # form (saw it on piazza)
+            query_param_val = request.args.get('val', None)
+            if form_val:
+                store[key] = form_val
+            elif query_param_val:
+                store[key] = query_param_val
+            else: # val= is nothing, no value provided.
+                resp = { 'result': ERROR,'msg': MSG_NO_VAL_PROVIDED }
+                return json(resp, status=403)
+                # store[key] = request.json # this is where the exception could get thrown.
+        except InvalidUsage:
+            store[key] = request.body.decode('utf-8') # absolute fallback..
 
         resp = {"replaced": replaced, "msg": msg}
         return json(resp, status=resp_code)
@@ -159,13 +178,13 @@ class KVForwarder(HTTPMethodView):
 
 
 def load_master_routes(*args, **kwargs):
-    app.add_route(KVStoreView.as_view(), r"/kv-store/<key:[a-zA-Z0-9_]{1,201}>")
+    app.add_route(KVStoreView.as_view(), r"/kv-store/<key:[a-zA-Z0-9_]{1,200}>")
     app.add_route(KVStoreBadKey, r"/kv-store/<badkey>")
 
 
 def load_forwarder_routes(*args, **kwargs):
     app.add_route(KVForwarder.as_view(), 
-            r"/kv-store/<key:[a-zA-Z0-9_]{1,201}>")
+            r"/kv-store/<key:[a-zA-Z0-9_]{1,200}>")
     app.add_route(KVStoreBadKey, r"/kv-store/<badkey>")
 
 
@@ -186,4 +205,4 @@ if __name__ == '__main__':
         load_forwarder_routes()
     else:
         load_master_routes()
-    app.run(host=ip, port=port, debug=False)
+    app.run(host=ip, port=port)

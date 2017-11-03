@@ -13,7 +13,7 @@ hostname = '127.0.0.1'  #Windows and Mac users can change this to the docker vm 
 sudo = ''
 container = 'hw2:latest'
 
-TEST_STATUS_CODES_ONLY = True
+TEST_STATUS_CODES_ONLY = False
 
 def start_nodes(sudo, hostname, container):
     exec_string_main  = sudo + " docker run -p 8083:8080 --net=mynet --ip=10.0.0.20 -e IP=10.0.0.20 -e PORT=8080 -d %s" % container
@@ -84,6 +84,7 @@ class TestHW2(unittest.TestCase):
 
     def test_a_put_nonexistent_key(self):
         res = requests.put(self.node_address[0]+'/kv-store/foo',data = {'val':'bart'})
+        print(res)
         self.assertTrue(res.status_code, [201, '201'])
 
         d = res.json()
@@ -95,6 +96,9 @@ class TestHW2(unittest.TestCase):
 
     def test_b_put_existing_key(self):
         res = requests.put(self.node_address[1]+'/kv-store/foo',data= {'val':'bart'})
+        print("CONTENT:", res.content)
+        print(res.json())
+        print(res.json().keys())
         self.assertTrue(res.status_code, [200, '200'])
         d = res.json()
         self.assertEqual(d['replaced'],'True')
@@ -102,6 +106,7 @@ class TestHW2(unittest.TestCase):
 
     def test_c_get_nonexistent_key(self):
         res = requests.get(self.node_address[2]+'/kv-store/faa')
+        print(res)
         self.assertTrue(res.status_code, [404, '404'])
         d = res.json()
         self.assertEqual(d['result'],'Error')
@@ -109,6 +114,7 @@ class TestHW2(unittest.TestCase):
 
     def test_d_get_existing_key(self):
         res = requests.get(self.node_address[0]+'/kv-store/foo')
+        print(res)
         self.assertTrue(res.status_code, [200, '200'])
         d = res.json()
         self.assertEqual(d['result'],'Success')
@@ -116,6 +122,7 @@ class TestHW2(unittest.TestCase):
 
     def test_e_del_nonexistent_key(self):
         res = requests.delete(self.node_address[1]+'/kv-store/faa')
+        print(res)
         self.assertTrue(res.status_code,[404, '404'])
         d = res.json()
         self.assertEqual(d['result'],'Error')
@@ -123,12 +130,14 @@ class TestHW2(unittest.TestCase):
 #
     def test_f_del_existing_key(self):
         res = requests.delete(self.node_address[2]+'/kv-store/foo')
+        print(res)
         self.assertTrue(res.status_code, [200, '200'])
         d = res.json()
         self.assertEqual(d['result'],'Success')
 #
     def test_g_get_deleted_key(self):
         res = requests.get(self.node_address[0]+'/kv-store/foo')
+        print(res)
         self.assertTrue(res.status_code,[ 404, '404'])
         d = res.json()
         self.assertEqual(d['result'],'Error')
@@ -136,6 +145,7 @@ class TestHW2(unittest.TestCase):
 #
     def test_h_put_deleted_key(self):
         res = requests.put(self.node_address[1]+'/kv-store/foo',data= {'val':'bart'})
+        print(res)
         self.assertTrue(res.status_code, [201, '201'])
         d = res.json()
         self.assertEqual(d['replaced'],'False')
@@ -143,13 +153,16 @@ class TestHW2(unittest.TestCase):
 #
     def test_i_put_nonexistent_key(self):
         res = requests.put(self.node_address[2]+'/kv-store/'+self.key1,data = {'val':self.val1})
+        print(res)
+
         self.assertTrue(res.status_code, [201, '201'])
         d = res.json()
-        self.assertEqual(d['replaced'], 'False')
+        self.assertEqual(d["replaced"], 'False')
         self.assertEqual(d['msg'],'New key created')
 #
     def test_j_put_existing_key(self):
         res = requests.put(self.node_address[0]+'/kv-store/'+self.key1,data= {'val':self.val2})
+        print(res)
         self.assertTrue(res.status_code, [200, '200'])
         d = res.json()
         self.assertEqual(d['replaced'],'True')
@@ -157,6 +170,7 @@ class TestHW2(unittest.TestCase):
 #
     def test_k_get_nonexistent_key(self):
         res = requests.get(self.node_address[1]+'/kv-store/'+self.key2)
+        print(res)
         self.assertTrue(res.status_code, [404, '404'])
         d = res.json()
         self.assertEqual(d['result'],'Error')
@@ -165,6 +179,7 @@ class TestHW2(unittest.TestCase):
 #
     def test_l_get_existing_key(self):
         res = requests.get(self.node_address[2]+'/kv-store/'+self.key1)
+        print(res)
         self.assertTrue(res.status_code, [200, '200'])
         d = res.json()
         self.assertEqual(d['result'],'Success')
@@ -172,6 +187,7 @@ class TestHW2(unittest.TestCase):
 #
     def test_m_put_key_too_long(self):
         res = requests.put(self.node_address[2]+'/kv-store/'+self.key3,data= {'val':self.val2})
+        print(res)
         self.assertTrue(res.status_code, [403, '403'])
         d = res.json()
         self.assertEqual(d['result'],'Error')
@@ -179,12 +195,14 @@ class TestHW2(unittest.TestCase):
 #
     def test_n_del_existing_key(self):
         res = requests.delete(self.node_address[0]+'/kv-store/'+self.key1)
+        print(res)
         self.assertTrue(res.status_code, [200, '200'])
         d = res.json()
         self.assertEqual(d['result'],'Success')
 #
     def test_o_get_deleted_key(self):
         res = requests.get(self.node_address[1]+'/kv-store/'+self.key1)
+        print(res)
         self.assertTrue(res.status_code, [404, '404'])
         d = res.json()
         self.assertEqual(d['result'],'Error')
@@ -192,6 +210,7 @@ class TestHW2(unittest.TestCase):
 #
     def test_p_put_deleted_key(self):
         res = requests.put(self.node_address[2]+'/kv-store/'+self.key1,data= {'val':self.val3})
+        print(res)
         self.assertTrue(res.status_code, [201, '201'])
         d = res.json()
         self.assertEqual(d['replaced'],'False')
@@ -199,6 +218,7 @@ class TestHW2(unittest.TestCase):
 #
     def test_q_put_key_without_value(self):
         res = requests.put(self.node_address[0]+'/kv-store/'+self.key2)
+        print(res)
         self.assertTrue(res.status_code, [403, '403'])
         d = res.json()
         self.assertEqual(d['result'],'Error')
@@ -208,6 +228,7 @@ class TestHW2(unittest.TestCase):
         self.__kill_node(2)
         time.sleep(3)
         res = requests.put(self.node_address[0]+'/kv-store/'+self.key1,data= {'val':'foo'})
+        print(res)
         self.assertTrue(res.status_code, [200, '200'])
         d = res.json()
         self.assertEqual(d['replaced'],'True')
