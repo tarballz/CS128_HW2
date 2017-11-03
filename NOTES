@@ -7,3 +7,4 @@ docker run -p 8080:8080 hw2
 
 # Stops ALL docker containers
 docker stop $(docker ps -a -q)
+

@@ -1,9 +1,13 @@
 #import pdb
+import os
+
+
+import requests
 from sanic import Sanic
-from sanic.response import text, json
+from sanic.response import text, json, raw
 from sanic.views import HTTPMethodView
 from sanic.exceptions import InvalidUsage
-import os
+
 
 app = Sanic(__name__)
 
@@ -13,12 +17,15 @@ MSG_KEY_NOT_EXIST = "Key does not exist"
 MSG_KEY_CREATED = "New key created"
 MSG_BODY_TO_LARGE = "Object too large. Size limit is 1MB"
 MSG_KEY_INVALID_FMT = "Key not valid"
+MSG_SERVER_UNAVAILABLE = "Server unavailable"
 REQ_BODY_BYTES_LIMIT = 1000000  # 1MB
 
 WORKER_NODE = False
 
-SUCCESS = "Success"
-ERROR = "Error"
+SUCCESS = 'Success'
+ERROR = 'Error'
+
+MAINIP = None
 
 # The actual data:
 store = {}
@@ -62,7 +69,7 @@ class KVStoreView(HTTPMethodView):
             resp = {"result": SUCCESS, "value": store[key]}
             return json(resp, status=200)
         else:
-            resp = {"result": ERROR, "value": MSG_KEY_NOT_EXIST}
+            resp = {"result": ERROR, "msg": MSG_KEY_NOT_EXIST}
             return json(resp, status=404)
 
     async def put(self, request, key):
@@ -81,11 +88,11 @@ class KVStoreView(HTTPMethodView):
             A Sanic Response.json Sanic instance that will be a serialized
                 json response to the user/client.
         """
-        replaced = False
+        replaced = 'False'
         resp_code = 201
         msg = MSG_KEY_CREATED
         if key in store:
-            replaced = True
+            replaced = 'True'
             resp_code = 200
             msg = MSG_KEY_REPLACED
         try:
@@ -110,24 +117,56 @@ class KVStoreView(HTTPMethodView):
             return json(resp, status=404)
 
 
-async def KVStoreBadKey(*args, **kwargs):
+async def KVStoreBadKey(badkey, *args, **kwargs):
+    # if len(badkey) > 200: 
+    #     r = {"result": ERROR, "msg": "Key not valid"}
+    #     return json(r, 403)
     r = {"result": ERROR, "msg": "Key not valid"}
-    return json(r, status=200)
+    return json(r, status=403)
 
+class KVForwarder(HTTPMethodView):
+    
+    async def _all(self, req, key):
+        """
+        Forwards all requests to the primary node aka MAINIP.
+            :param request: 
+            :param key: 
+            :param *args: 
+            :param **kwargs: 
+        """
+        print("*" * 80)
+        print(req, key)
+        print(MAINIP)
+        #response = requests.Request()
+        try:
+            response = requests.request(url=('http://' + MAINIP + '/kv-store/' + key ), method=req.method)
+            print(response)
+            if response.json() != None:
+                return raw(response.content, response.status_code)
+        except requests.exceptions.ConnectionError:
+            r = {"result": ERROR, "msg": MSG_SERVER_UNAVAILABLE}
+            return json(r, 501)
+        return raw(response.content, response.status_code)
 
-async def KVForwarder(*args, **kwargs):
-    print("*" * 80)
-    return json({}, status=200)
+    async def get(self, request, key):
+        return await self._all(request, key)
+
+    async def put(self, request, key):
+        return await self._all(request, key)
+
+    async def delete(self, request, key):
+        return await self._all(request, key)
 
 
 def load_master_routes(*args, **kwargs):
-    app.add_route(KVStoreView.as_view(), "/kv-store/<key:[a-zA-Z0-9_]{1,200}>")
-    app.add_route(KVStoreBadKey, "/kv-store/<badkey>")
+    app.add_route(KVStoreView.as_view(), r"/kv-store/<key:[a-zA-Z0-9_]{1,201}>")
+    app.add_route(KVStoreBadKey, r"/kv-store/<badkey>")
 
 
 def load_forwarder_routes(*args, **kwargs):
-    app.add_route(KVForwarder, "/kv-store/<key:[a-zA-Z0-9_]{1,200}>")
-    app.add_route(KVStoreBadKey, "/kv-store/<badkey>")
+    app.add_route(KVForwarder.as_view(), 
+            r"/kv-store/<key:[a-zA-Z0-9_]{1,201}>")
+    app.add_route(KVStoreBadKey, r"/kv-store/<badkey>")
 
 
 @app.middleware('request')
@@ -137,16 +176,14 @@ async def request_body_limit(request):
 
 
 if __name__ == '__main__':
-    app.config.KEEP_ALIVE = False
+    app.config.KEEP_ALIVE = True
     ip = os.getenv('IP', '0.0.0.0')
     port = os.getenv('PORT', 8080)
-    main_ip = os.getenv('MAINIP')
-    if (main_ip != None):
+    MAINIP = os.getenv('MAINIP', None)
+    if (MAINIP != None):
         WORKER_NODE = True
         # verify further?
         load_forwarder_routes()
     else:
         load_master_routes()
-    print(ip, port, main_ip)
-    print(app.router.routes_all)
-    app.run(host=ip, port=port, debug=True)
+    app.run(host=ip, port=port, debug=False)
