@@ -1,5 +1,7 @@
-tdersch :  Set up the initial Docker config
-peschwar:  Wrote the Flask web server
-bmccoid :  I made nachos to prepare for us doing the assignment.
-	   When I returned with the nachos, the assignment was
-	   finished.
+tdersch :  Docker network configuration.
+peschwar:  Docker / Python debugging and polishing.
+bmccoid :  Migrated us to Sanic framework and set up
+	   the forwarding protocol.
+
+- Everything else we worked on together, in person,
+  on the same workstation.
