@@ -8,6 +8,10 @@ docker run -p 8080:8080 hw2
 # Stops ALL docker containers
 docker stop $(docker ps -a -q)
 
+# Force remove image (Paytons error)
+docker rmi -f image_name:version
+
+
 ##################### HW2 ############################
 
 docker run -p 8083:8080 --net=mynet --ip=10.0.0.20 -e IP=10.0.0.20 -e PORT=8080 IMAGE_NAME
