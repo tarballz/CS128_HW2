@@ -24,3 +24,6 @@ docker container prune
 
 # Connect our container to our network
 docker network connect mynet image_name:version
+
+# Curl to query our container
+curl 'localhost:8080/kvs/abc' -d 'val=123' -X PUT
