@@ -3,7 +3,6 @@ from flask import Flask
 from flask import request
 from flask import jsonify
 from json import dumps, decoder
-from rest_framework.response import Response
 
 import subprocess
 import requests
@@ -67,10 +66,10 @@ def get_kv(key):
         status_code = 200
         if key in KVStore:
             response_data["msg"] = "Success"
-            response_data["value"] = KVStore[key]
+            response_data["value"] = KVStore[str(key)]
         else:
+            response_data["msg"] = 'Key does not exist'
             response_data["result"] = 'Error'
-            response_data["msg"] = "Key does not exist"
             status_code = 404
         return dumps(response_data), status_code, {'Content-Type': 'application/json'}
     else:
